@@ -1,6 +1,8 @@
 const { response } = require("express");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
+const bcrypt = require('bcryptjs');
+const { generateJWT } = require('../helpers/jwt')
 
 const createUser = async (req, res = response) => {
   const { email, name, password } = req.body;
@@ -19,7 +21,12 @@ const createUser = async (req, res = response) => {
     const dbUser = new User(req.body);
 
     // Hashear contraseña
+    const salt = bcrypt.genSaltSync(10);
+    dbUser.password = bcrypt.hashSync(password, salt);
+
     // Generar JWT
+    const token = await generateJWT(dbUser.id, name);
+
     // Crear usuario de BBDD
     await dbUser.save();
 
@@ -28,7 +35,8 @@ const createUser = async (req, res = response) => {
       ok: true,
       uid: dbUser.id,
       name,
-      msg: 'Usuario creado exitosamente'
+      msg: 'Usuario creado exitosamente',
+      token
     });
   } catch (error) {
     console.log(error);
@@ -39,13 +47,43 @@ const createUser = async (req, res = response) => {
   }
 };
 
-const login = (req, res = response) => {
-  console.log(req.body);
+const login = async (req, res = response) => {
+  const { email, password } = req.body;
+  try {
+    const dbUser = await User.findOne({ email });
+    if (!dbUser) {
+      return res.json({
+        ok: false,
+        msg: 'El correo no existe'
+      });
+    }
+    
+    // Confirmar si el password hace match
+    const validPassword = bcrypt.compareSync(password, dbUser.password);
+    if (!validPassword) {
+      return res.status(400).json({
+        ok: false,
+        msg: 'La contraseña no es válida'
+      });
+    }
 
-  return res.json({
-    ok: true,
-    msg: "Login de usuario /",
-  });
+    // Generar JWT
+    const token = await generateJWT(dbUser.id, dbUser.name);
+
+    // Respuesta del servicio
+    return res.json({
+      ok: true,
+      uid: dbUser.id,
+      name: dbUser.name,
+      token
+    })
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      msg: 'Hable con el administrador'
+    });
+  }
 };
 
 const revalidateToken = (req, res = response) => {
