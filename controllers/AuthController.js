@@ -52,7 +52,7 @@ const login = async (req, res = response) => {
   try {
     const dbUser = await User.findOne({ email });
     if (!dbUser) {
-      return res.json({
+      return res.status(400).json({
         ok: false,
         msg: 'El correo no existe'
       });
