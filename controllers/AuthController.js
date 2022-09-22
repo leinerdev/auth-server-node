@@ -1,4 +1,4 @@
-const { response } = require("express");
+const { response, request } = require("express");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const bcrypt = require('bcryptjs');
@@ -71,7 +71,7 @@ const login = async (req, res = response) => {
     const token = await generateJWT(dbUser.id, dbUser.name);
 
     // Respuesta del servicio
-    return res.json({
+    return res.status(200).json({
       ok: true,
       uid: dbUser.id,
       name: dbUser.name,
@@ -86,10 +86,14 @@ const login = async (req, res = response) => {
   }
 };
 
-const revalidateToken = (req, res = response) => {
+const revalidateToken = async (req = request, res = response) => {
+  const { uid, name } = req;
+  const token = await generateJWT(uid, name);
   return res.json({
     ok: true,
-    msg: "Renew",
+    uid,
+    name,
+    token
   });
 };
 
