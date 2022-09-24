@@ -69,8 +69,10 @@ const login = async (req, res = response) => {
 
     // Generar JWT
     const token = await generateJWT(dbUser.id, dbUser.name);
-
+    console.log(token);
+    
     // Respuesta del servicio
+    console.log('Respuesta del server');
     return res.status(200).json({
       ok: true,
       uid: dbUser.id,
